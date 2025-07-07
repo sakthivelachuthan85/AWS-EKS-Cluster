@@ -1,0 +1,58 @@
+name: Deploy AWS EKS Cluster
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      # Checkout the repository to get access to your Terraform configuration
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Set up AWS CLI (needed for Terraform to interact with AWS)
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Set up Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.7  # Adjust to the version you want
+
+      # Install Terraform dependencies (optional)
+      - name: Terraform init
+        run: terraform init
+
+      # Plan the Terraform deployment
+      - name: Terraform plan
+        run: terraform plan
+
+      # Apply the Terraform configuration to deploy the EKS cluster
+      - name: Terraform apply
+        run: terraform apply -auto-approve
+
+      # Optionally, configure kubectl to interact with the EKS cluster
+      - name: Set up kubectl
+        uses: aws-actions/configure-kubectl@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      # Optionally, you can deploy kubernetes resources here, for example:
+      # - name: Apply Kubernetes Manifests
+      #   run: kubectl apply -f k8s/
